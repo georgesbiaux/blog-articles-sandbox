@@ -39,7 +39,9 @@ The fact is that dirty code with huge and complicated function will be way more 
 
 ### Make refactoring easier
 
-Unit testing 
+To be honest, I lied when I said unit testing was not a tool to detect regressions. It is in **only one particular case**: refactoring.
+
+Unit Tests allows you to make big changes to code quickly. You know it works now because you've run the tests, when you make the changes you need to make, you need to get the tests working again. This saves hours.
 
 ## The notion of System Under Testing (SUT)
 

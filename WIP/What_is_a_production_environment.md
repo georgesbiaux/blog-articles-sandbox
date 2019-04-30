@@ -2,13 +2,16 @@
 
 ## ✅ Checkpoints
 
-- It is hosted on an environment that is paid or provided by the client (e.g Client IT team servers, OVH or AWS VMs).
-  - The client must be able to administrate his production after the leave of M33.
-- The server is managed by the client IT team or a specialized company (e.g Synalabs).
-  - Someone, other than M33, must be in charge of restarting the application if it falls at 3 a.m.
-- I have a plan to absorb the application expected load (Server RAM, CPU and SSD, load balancing, limiter...).
-- It has a DNS entry on a domain administrated by the client.
-- It has an SSL certificate installed and a system to renew it periodically (e.g Let's Encrypt).
+It is hosted on an environment that is paid or provided by the client (e.g Client IT team servers, OVH or AWS VMs).
+The client must be able to administrate his production after the leave of M33.
+The server is managed by the client IT team or a specialized company (e.g Synalabs).
+Someone, other than M33, must be in charge of restarting the application if it falls at 3 a.m.
+I have a plan to absorb the application expected load (Server RAM, CPU and SSD, load balancing, limiter...).
+It has a DNS entry on a domain administrated by the client.
+It has an SSL certificate installed and a system to renew it periodically (e.g Let's Encrypt).
+The production data (database, uploaded files...) are backed up regularly.
+The server is monitored (e.g New Relic).
+All the logs are centralized and accessible by all the developers and ops team (e.g Logmatic).
 
 If at the technical challenge, those conditions can't be met, the architect must send an email to the client with :
 
@@ -28,6 +31,10 @@ The client wanted to develop a POC during 4 weeks. The BPI IT needed 3-6 months 
 - ✅ Plan to absorb the load.
 - ❌ DNS entry administrated by the client.
 - ✅ SSL certificate renewed periodically.
+- ✅ Data backup.
+- ✅ Monitoring.
+- ✅ Centralized logs.
+
 
 ### Fast IT projects
 
@@ -40,3 +47,6 @@ After the servers have been delivered, two Fast IT OPs manage the servers.
 - ✅ Plan to absorb the load.
 - ✅ DNS entry administrated by the client.
 - ✅ SSL certificate renewed periodically.
+- ✅ Data backup.
+- ✅ Monitoring.
+- ✅ Centralized logs.
