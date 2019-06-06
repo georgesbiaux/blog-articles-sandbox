@@ -1,11 +1,13 @@
 # How I ruined my application performances by using React context instead of Redux
 
 ## TL;DR
+
 - I used React contexts instead of Redux for centrilized states
-- Without a selector system, my components where getting big objects as props, with a lot of properties unused to build the view
+- Without a selector system, my components where getting objects as props, with properties often changing and not necessary to build the view
 - Any change in these state object caused almost all my components to rerender
 - I had thousands of useless rerenders at every user interraction
-- Refactor all the application to use Redux and use the selector system to give each component only what it needed solved the problem
+- Refactor all the application to use Redux and use the selector system to give each component strictly what it needed solved the problem
+- My point is not that contexts are bad and Redux good. My point is, if you need to store centrilized objects with property that often change, you should also have a selector system to only get what you need from the centrilized state.
 
 ## A bit of context
 
@@ -13,7 +15,7 @@ At Theodo, we heavily use Scrum, which is great to manage a backlog sprint after
 
 So, we decided to develop a tool to address those problems: Splane.
 
-[Splane]: ./Splane1.png
+![Splane](./Splane1.png)
 
 As you can see, this is a trello-like Kanban board where each columns represents a sprint. The idea is that you have two distinct zones: the top one to organise your EPICs and to bottom one to manage your dependencies.
 
@@ -25,10 +27,156 @@ We've been using Redux on all our React project for a long time, and Redux is pa
 
 So, when the application needed its first centrilized state, I told myself "Let's make it much simpler, let's use React context instead of Redux".
 
+To make this new context based architecture easy to use, I developped the following HOC:
 
+```javascript
+import React, { useContext, useState } from 'react';
+import { getDisplayName } from 'recompose';
+
+export const provideContext = (
+  Context, // The context object the state will be saved in
+  name, // The state name
+  setterMethodName, // The state setter name
+  defaultValue = null, // The state default value
+) => WrappedComponent => {
+  const ComponentWithContext = props => {
+    const [state, setState] = useState({
+      [name]: typeof defaultValue === 'function' ? defaultValue(props) : defaultValue,
+      [setterMethodName]: setContext,
+    });
+
+    function setContext(value) {
+      setState({
+        ...state,
+        [name]: value,
+      });
+    }
+
+    return (
+      <Context.Provider value={state}>
+        <WrappedComponent {...{ ...props, ...state }} />
+      </Context.Provider>
+    );
+  };
+
+  ComponentWithContext.displayName = `provideContext(${getDisplayName(WrappedComponent)})`;
+
+  return ComponentWithContext;
+};
+
+export const withContext = Context => WrappedComponent => {
+  const ComponentWithContext = props => {
+    const context = useContext(Context);
+    return <WrappedComponent {...{ ...props, ...context }} />;
+  };
+
+  ComponentWithContext.displayName = `withContext(${getDisplayName(WrappedComponent)})`;
+
+  return ComponentWithContext;
+};
+
+export default withContext;
+```
+
+As you can see, all I had to do after that was to wrap a parent component with `provideContext` and then inject the state and the state setter to my children components with `withContext` :
+
+```javascript
+
+// MyParentComponent.js
+const MyParentComponent = () => (<div>
+    <MyChildComponent />
+</div>)
+
+export default provideContext(CurrentUserContext, 'currentUser', 'setCurrentUser', { username: 'Obi-Wan Kenobi' })(MyParentComponent);
+
+// MyChildComponent.js
+const MyChildComponent = ({ currentUser, setCurrentUser }) => (<div>
+    <span class="username">{currentUser.username}</span>
+    <button onClick={() => setCurrentUser({ ...currentUser, username: 'Yoda' })}>Become Yoda</button>
+</div>)
+
+export default withContext(CurrentUserContext)(MyChildComponent);
+```
+
+Not perfect, but it was simpler than Redux. During the first few month of the project, I was quite happy with this system.
 
 ## Why it was a huge mistake
 
+The application growed, as most of them do. And the performances degraded slowly. At one point, we wanted to develop a feature so the user could link an EPICs to its dependencies, and when he hovered the EPIC card, the link would appear. So, we developped the feature using the context system, and this happened:
+
+![Splane](./Splane2.gif)
+
+This application is incredibly slow. After a few investigations, we found out (partly thanks to why-did-you-update) that each user interraction caused thousands of useless rerender. Every time the user hovered an EPIC card, almost every other EPICs and dependicies were rerendering several times.
+
+So, what cause this huge amount of rerenders ?
+
+To display the link between an EPIC and its dependencies, I had created a context to store (for exemple) the current hovered card. So in my EPICs and dependencies component, I had something like this:
+
+```javascript
+
+// Board.js
+export default provideContext(CurrentCardContext, 'currentCard', 'setCurrentCard', null)(Board); // Board is the parent component of all the EPICs and dependencies
+
+// Epic.js
+const Epic = (epic, currentCard, setCurrentCard) => (
+  <div
+    class={epic.id === currentCard.id ? 'hover' : ''}
+    onMouseOver={() => {
+      setCurrentCard({
+        id: epic.id,
+        type: EPIC_CARD_TYPE,
+      });
+    }}
+    onMouseOut={() => {
+      setCurrentCard(null);
+    }}
+  />
+);
+
+export default withContext(CurrentCardContext)(Epic);
+```
+
+Of course, this exemple is a huge simplification of my actual component. In fact, I injected 5 different contexts inside the epic component and I did other operation in `onMouseOver` and `onMouseOut`.
+
+But, this simple exemple shows the problem: each time I hover an EPIC or a dependency, ALL the Epics and the dependencies rerender because the `currentCard` value changes and ALL the EPICs and dependencies take it as a prop. This leads to hundreds of useless rerenders when, in fact, I could only rerender two cards (the previous hovered card and the current hovered card). I let you imagine what this can lead to when you have a huge board and the current card data is not the only one provoking useless rerenders. The performances were mediocre.
+
 ## What I had to do to fix everything
 
+Well, I needed a selector system. Why ? To do this:
+
+```javascript
+// Epic.js
+const Epic = (epic, isHovered, setCurrentCard) => (
+  <div
+    class={isHovered ? 'hover' : ''}
+    onMouseOver={() => {
+      setCurrentCard({
+        id: epic.id,
+        type: EPIC_CARD_TYPE,
+      });
+    }}
+    onMouseOut={() => {
+      setCurrentCard(null);
+    }}
+  />
+);
+
+const mapStateToProps = (state, props) => ({
+  isHovered: state.currentCard && state.currentCard.id === props.epic.id,
+});
+
+const mapDispatchToProps = dispatch => ({
+  setCurrentCard: currentCard => dispatch(currentCardActions.setCurrentCard({ currentCard })),
+});
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(Epic);
+```
+
+Here, the computation of the isHovered data is not done during the render, by in the Redux lifecycle, which is way less costly. And with this trick, when hovering an EPIC or a dependency, only this card and the previously hovered one will rerender. By appliying this to all the centrilized state everywhere in the application, the time it took to display the link between two card droped from 1500ms to 100ms.
+
 ## Conclusion
+
+Contexts are not bad, and Redux should not be used whenever you need a centrilized state. But before choosing one of them, think about the optimizations the selector system and the Redux lifecycle can bring you. In my opinion, contexts should be used for simple data that do not change often, and when it gets more complicated than that, you should go for Redux.
