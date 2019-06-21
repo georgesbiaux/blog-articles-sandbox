@@ -3,11 +3,11 @@
 ## TL;DR
 
 - I used React contexts instead of Redux for centrilized states
-- Without a selector system, my components where getting objects as props, with properties often changing and not necessary to build the view
-- Any change in these state object caused almost all my components to rerender
+- Without a selector system, my components where getting lots of data as props, some of them were often changing and not necessary to build the view
+- Any change in these contexts objects caused almost all my components to rerender
 - I had thousands of useless rerenders at every user interraction
-- Refactor all the application to use Redux and use the selector system to give each component strictly what it needed solved the problem
-- My point is not that contexts are bad and Redux good. My point is, if you need to store centrilized objects with property that often change, you should also have a selector system to only get what you need from the centrilized state.
+- Refactor all the application to use Redux and use wisely the selector system to give each component strictly what it needed solved the problem
+- Before choosing between contexts or redux, think about the optimizations the selector system can bring you
 
 ## A bit of context
 
@@ -100,7 +100,7 @@ export default withContext(CurrentUserContext)(MyChildComponent);
 
 Not perfect, but it was simpler than Redux. During the first few month of the project, I was quite happy with this system.
 
-## Why it was a huge mistake
+## Why it was a mistake
 
 The application growed, as most of them do. And the performances degraded slowly. At one point, we wanted to develop a feature so the user could link an EPICs to its dependencies, and when he hovered the EPIC card, the link would appear. So, we developped the feature using the context system, and this happened:
 
@@ -179,4 +179,4 @@ Here, the computation of the isHovered data is not done during the render, by in
 
 ## Conclusion
 
-Contexts are not bad, and Redux should not be used whenever you need a centrilized state. But before choosing one of them, think about the optimizations the selector system and the Redux lifecycle can bring you. In my opinion, contexts should be used for simple data that do not change often, and when it gets more complicated than that, you should go for Redux.
+Yes, the title is a clickbait. Contexts are not bad, and Redux should not be used whenever you need a centrilized state. But before choosing one of them, think about the optimizations the selector system and the Redux lifecycle can bring you. In my opinion, contexts should be used for simple data that do not change often, and when it gets more complicated than that, you should go for Redux.
