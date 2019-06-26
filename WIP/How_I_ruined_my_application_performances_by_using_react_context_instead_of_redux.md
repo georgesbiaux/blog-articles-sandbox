@@ -142,7 +142,7 @@ But, this simple exemple shows the problem: each time I hover an EPIC or a depen
 
 ## What I had to do to fix everything
 
-Well, I needed a selector system. Why ? To do this:
+Well, I needed a selector system. Why ? To inject into the components only the data they need, and move the computation/transformation of such data outside of the rendering cycle. Basically, my choices were to code a selector system on top of my contexts, hence recoding a big part of Redux, or use Redux itself. Of course, I chose Redux and did this:
 
 ```javascript
 // Epic.js
